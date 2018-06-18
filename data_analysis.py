@@ -21,6 +21,13 @@ def generate_samples(dna_data):
      
   return sample_list 
 
+#Separates DNA strand into codons of length num
+
+def dna_codons(strand_sample,num):
+    strand_sample_sep=[strand_sample[i:i+num] for i in range(0,len(strand_sample)-num+1)]
+    
+    return strand_sample_sep
+
 
 def nt_dict_array(codon_list,num):
 #given the codon length, counts frequency for each permutation in fragment
@@ -89,6 +96,7 @@ x=read_dna('Pseudomonas_aeruginosa_genomic.txt')
 strand_samples=generate_samples(x)
 
 from sklearn.decomposition import PCA as sklearnPCA
+from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 
 #Initial PCA for 2d plot
@@ -107,12 +115,13 @@ kmeans = KMeans(n_clusters=7,random_state=0).fit(sklearn_transfhigh)
 verts=kmeans.cluster_centers_
 
 #Determine End Codon Count in Each Cluster
+from collections import Counter
+
 def end_codon_count(end_codon,codon_list,cluster_pred):
   from operator import itemgetter
   
   #creates a list of tuple of end codon frequency and cluster number
-  lst=[(codon_list[i].count(end_codon),cluster_pred[i])... 
-  ...for i in range(0,len(codon_list))]
+  lst=[(codon_list[i].count(end_codon),cluster_pred[i]) for i in range(0,len(codon_list))]
   
   #sorts lst by cluster number so that we can find total end codon count
   lst.sort(key=itemgetter(1))
@@ -123,9 +132,7 @@ def end_codon_count(end_codon,codon_list,cluster_pred):
   clind.append(len(lst)-1)
   
   #calculates the mean instances of end codon
-  meanend_codon_count= ....
-  [np.sum(lstarray[clind[i]:clind[i+1],0])/(clind[i+1]-clind[i])...
-  ...for i in range(len(clind)-1)] 
+  meanend_codon_count= [np.sum(lstarray[clind[i]:clind[i+1],0])/(clind[i+1]-clind[i]) for i in range(len(clind)-1)] 
   
   #calculates the total instances of end codon
   end_codon_count=[np.sum(lstarray[clind[i]:clind[i+1],0]) for i in range(len(clind)-1)] 
@@ -135,6 +142,12 @@ def end_codon_count(end_codon,codon_list,cluster_pred):
 #calculate the mutual information for determine the 
 
 r1=range(0,4)
+nt=['A','C','G','T']
+x=read_dna(file_name)
+strand_samples=generate_samples(x)
+dna_data=[dna_codons(strand_samples[i],3) for i in range(0,len(strand_samples))]
+  
+  
 perm3=[nt[i]+nt[j]+nt[k] for i in r1 for j in r1 for k in r1]  
 ldna=len(dna_data[0])
 
@@ -144,7 +157,8 @@ cluster_mi=[]
 for k in range(len(dna_data)):
   lst=Counter(dna_data[k])
   sumList1=[];
-  
+
+
 #Finds frequencies of each nucleotide in fragment p1i, p2j, p3k  
   for j in range(4):
     sumList1.append(sum([lst[permlist1[j][i]] for i in range(16)]))
@@ -159,14 +173,13 @@ for k in range(len(dna_data)):
   sumList3=[];
   for j in range(4):
     sumList3.append(sum([lst[permlist3[j][i]] for i in range(16)]))
-  d3=dict(zip(nt,sumList3))
-  
+  d3=dict(zip(nt,sumList3))    
+    
   mi_sum=0
   
   for i in range(64):
    if lst[perm3[i]]>0:   
-     mi_sum+=lst[perm3[i]]*np.log(ldna**2*lst[perm3[i]]/...
-     ...(d1[perm3[i][0]]*d2[perm3[i][1]]*d3[perm3[i][2]]))/ldna
+     mi_sum+=lst[perm3[i]]*np.log(ldna**2*lst[perm3[i]]/(d1[perm3[i][0]]*d2[perm3[i][1]]*d3[perm3[i][2]]))/ldna
   
   cluster_mi.append((mi_sum,y_pred[k]))
 
@@ -176,9 +189,5 @@ cluster_mi.sort(key=itemgetter(1))
 clustmi_array=np.array(cluster_mi)
 clusterind=[np.where(clustmi_array[:,1]==j)[0][0] for j in range(7)]
 clusterind.append(len(cluster_mi)-1)
-mean_mi=[np.sum(clustmi_array[clusterind[i]:clusterind[i+1],0])/...
-...(clusterind[i+1]-clusterind[i]) for i in range(len(clusterind)-1)] 
-
-
-
+mean_mi=[np.sum(clustmi_array[clusterind[i]:clusterind[i+1],0])/(clusterind[i+1]-clusterind[i]) for i in range(len(clusterind)-1)] 
 
